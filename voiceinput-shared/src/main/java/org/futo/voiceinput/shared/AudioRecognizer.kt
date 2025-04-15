@@ -36,6 +36,8 @@ import org.futo.voiceinput.shared.types.Language
 import org.futo.voiceinput.shared.types.MagnitudeState
 import org.futo.voiceinput.shared.types.ModelInferenceCallback
 import org.futo.voiceinput.shared.types.ModelLoader
+import org.futo.voiceinput.shared.whisper.MutableMultiModelRunConfiguration
+import org.futo.voiceinput.shared.whisper.WhisperConfig
 import org.futo.voiceinput.shared.ui.MicrophoneDeviceState
 import org.futo.voiceinput.shared.whisper.DecodingConfiguration
 import org.futo.voiceinput.shared.whisper.ModelManager
@@ -98,10 +100,21 @@ class AudioRecognizer(
     private val listener: AudioRecognizerListener,
     private val settings: AudioRecognizerSettings
 ) {
+    // Load Whisper configuration
+    private val whisperConfig = WhisperConfig.loadFromPreferences(context)
     private var isRecording = false
     private var recorder: AudioRecord? = null
 
     private val modelRunner = MultiModelRunner(modelManager)
+    
+    // Mutable configuration for model selection
+    private val mutableConfig = MutableMultiModelRunConfiguration.fromImmutable(settings.modelRunConfiguration)
+    
+    // Apply remote processing configuration if enabled
+    init {
+        // This will be used when models are loaded
+        verifyModelsExist()
+    }
 
     private val canExpandSpace = settings.recordingConfiguration.canExpandSpace
     private val useVAD = settings.recordingConfiguration.useVADAutoStop
@@ -192,12 +205,28 @@ class AudioRecognizer(
     @Throws(ModelDoesNotExistException::class)
     private fun verifyModelsExist() {
         val modelsThatDoNotExist = mutableListOf<ModelLoader>()
-
-        if (!settings.modelRunConfiguration.primaryModel.exists(context)) {
-            modelsThatDoNotExist.add(settings.modelRunConfiguration.primaryModel)
+        
+        // Apply remote processing configuration if enabled
+        val primaryModel = whisperConfig.createModelLoader(
+            context, 
+            mutableConfig.primaryModel,
+            org.futo.voiceinput.shared.R.string.remote_model_name
+        )
+        
+        if (!primaryModel.exists(context)) {
+            modelsThatDoNotExist.add(primaryModel)
+        }
+        
+        // Create a map of language-specific models with remote processing if enabled
+        val languageSpecificModels = mutableConfig.languageSpecificModels.entries.associate { (language, model) ->
+            language to whisperConfig.createModelLoader(
+                context,
+                model,
+                org.futo.voiceinput.shared.R.string.remote_model_name
+            )
         }
 
-        for (model in settings.modelRunConfiguration.languageSpecificModels.values) {
+        for (model in languageSpecificModels.values) {
             if (!model.exists(context)) {
                 modelsThatDoNotExist.add(model)
             }
@@ -206,10 +235,11 @@ class AudioRecognizer(
         if (modelsThatDoNotExist.isNotEmpty()) {
             throw ModelDoesNotExistException(modelsThatDoNotExist)
         }
-    }
-
-    init {
-        verifyModelsExist()
+        
+        // Update the mutable configuration with the new models
+        mutableConfig.primaryModel = primaryModel
+        mutableConfig.languageSpecificModels.clear()
+        mutableConfig.languageSpecificModels.putAll(languageSpecificModels)
     }
 
     fun reset() {
@@ -290,7 +320,8 @@ class AudioRecognizer(
     }
 
     private suspend fun preloadModels() {
-        modelRunner.preload(settings.modelRunConfiguration)
+        // Use the mutable configuration converted to immutable
+        modelRunner.preload(mutableConfig.toImmutable())
     }
 
     private suspend fun recordingJob(recorder: AudioRecord, vad: VadModel?) {
@@ -534,13 +565,25 @@ class AudioRecognizer(
             }
         }
 
+        // Verify models exist again in case network conditions changed
+        try {
+            verifyModelsExist()
+        } catch (e: ModelDoesNotExistException) {
+            Log.w("AudioRecognizer", "Models not available, using fallback", e)
+            // If we have no models at all, we need to inform the user
+            if (e.models.isEmpty()) {
+                throw e
+            }
+            // Otherwise continue with current configuration as fallback
+        }
+
         val floatArray = floatSamples.array().sliceArray(0 until floatSamples.position())
 
         yield()
         val outputText = try {
              modelRunner.run(
                 floatArray,
-                settings.modelRunConfiguration,
+                mutableConfig.toImmutable(),
                 settings.decodingConfiguration,
                 runnerCallback
             ).trim()

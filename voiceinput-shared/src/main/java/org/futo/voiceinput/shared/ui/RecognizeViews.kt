@@ -59,6 +59,7 @@ import kotlinx.coroutines.delay
 import org.futo.voiceinput.shared.R
 import org.futo.voiceinput.shared.types.MagnitudeState
 import org.futo.voiceinput.shared.ui.theme.Typography
+import org.futo.voiceinput.shared.whisper.ProcessingModeTracker
 
 data class MicrophoneDeviceState(
     val bluetoothAvailable: Boolean,
@@ -215,6 +216,14 @@ fun ColumnScope.PartialDecodingResult(text: String = "I am speaking [...]") {
     CircularProgressIndicator(
         modifier = Modifier.align(Alignment.CenterHorizontally),
         color = MaterialTheme.colorScheme.onPrimary
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    
+    // Add processing indicator
+    val isRemoteProcessing = ProcessingModeTracker.rememberIsRemoteProcessing()
+    ProcessingIndicator(
+        isRemoteProcessing = isRemoteProcessing.value,
+        modifier = Modifier.align(Alignment.CenterHorizontally)
     )
     Spacer(modifier = Modifier.height(6.dp))
     Surface(

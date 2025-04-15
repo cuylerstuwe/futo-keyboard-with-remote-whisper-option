@@ -97,6 +97,13 @@ fun VoiceInputScreen(navController: NavHostController = rememberNavController())
                 style = NavigationItemStyle.Misc,
                 navigate = { navController.navigate("languages") }
             )
+            
+            NavigationItem(
+                title = stringResource(org.futo.voiceinput.shared.R.string.remote_processing_settings),
+                subtitle = stringResource(org.futo.voiceinput.shared.R.string.remote_processing_description),
+                style = NavigationItemStyle.Misc,
+                navigate = { navController.navigate("remoteWhisper") }
+            )
         }
     }
 }

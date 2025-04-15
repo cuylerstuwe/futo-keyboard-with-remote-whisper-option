@@ -47,4 +47,16 @@
     <string name="base_name">Multilingual-74 (default)</string>
     <!-- Model name for the small model -->
     <string name="small_name">Multilingual-244 (slow)</string>
+    
+    <!-- Remote processing strings -->
+    <string name="remote_model_name">Remote Whisper (most accurate)</string>
+    <string name="remote_processing_settings">Remote Processing Settings</string>
+    <string name="use_remote_processing">Use Remote Processing</string>
+    <string name="remote_processing_description">Process voice on a remote server for better accuracy</string>
+    <string name="server_url">Server URL</string>
+    <string name="api_key">API Key</string>
+    <string name="model_name">Model Name</string>
+    <string name="remote_processing_indicator">Remote Processing</string>
+    <string name="local_processing_indicator">Local Processing</string>
+    <string name="network_unavailable">Network unavailable, using local processing</string>
 </resources>

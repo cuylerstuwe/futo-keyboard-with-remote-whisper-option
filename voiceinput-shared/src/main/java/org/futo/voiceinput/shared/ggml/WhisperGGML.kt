@@ -4,6 +4,7 @@ import androidx.annotation.Keep
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
+import org.futo.voiceinput.shared.whisper.WhisperProcessor
 import java.nio.Buffer
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -20,7 +21,7 @@ class InferenceCancelledException : Exception()
 @Keep
 class WhisperGGML(
     modelBuffer: Buffer
-) {
+) : WhisperProcessor {
     private var handle: Long = 0L
     init {
         handle = openFromBufferNative(modelBuffer)
@@ -41,12 +42,11 @@ class WhisperGGML(
     // 1 language = will force that language
     // 2 or more languages = autodetect between those languages
     @Throws(BailLanguageException::class, InferenceCancelledException::class)
-    suspend fun infer(
+    override suspend fun process(
         samples: FloatArray,
         prompt: String,
         languages: Array<String>,
         bailLanguages: Array<String>,
-        decodingMode: DecodingMode,
         suppressNonSpeechTokens: Boolean,
         partialResultCallback: (String) -> Unit
     ): String = withContext(inferenceContext) {
@@ -55,7 +55,7 @@ class WhisperGGML(
         }
         this@WhisperGGML.partialResultCallback = partialResultCallback
 
-        val result = inferNative(handle, samples, prompt, languages, bailLanguages, decodingMode.value, suppressNonSpeechTokens).trim()
+        val result = inferNative(handle, samples, prompt, languages, bailLanguages, DecodingMode.BeamSearch5.value, suppressNonSpeechTokens).trim()
 
         if(result.contains("<>CANCELLED<>")) {
             if(result.contains("flag")) {
@@ -72,12 +72,12 @@ class WhisperGGML(
         }
     }
 
-    fun cancel() {
+    override fun cancel() {
         if(handle == 0L) return
         cancelNative(handle)
     }
 
-    suspend fun close() = withContext(inferenceContext) {
+    override suspend fun close() = withContext(inferenceContext) {
         if(handle != 0L) {
             closeNative(handle)
         }

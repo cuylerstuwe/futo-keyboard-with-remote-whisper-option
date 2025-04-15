@@ -31,6 +31,7 @@ import org.futo.inputmethod.latin.uix.settings.pages.SelectLanguageScreen
 import org.futo.inputmethod.latin.uix.settings.pages.SelectLayoutsScreen
 import org.futo.inputmethod.latin.uix.settings.pages.ThemeScreen
 import org.futo.inputmethod.latin.uix.settings.pages.VoiceInputScreen
+import org.futo.inputmethod.latin.uix.settings.pages.RemoteWhisperScreen
 import org.futo.inputmethod.latin.uix.settings.pages.addModelManagerNavigation
 import org.futo.inputmethod.latin.uix.settings.pages.addTypingNavigation
 import org.futo.inputmethod.latin.uix.urlDecode
@@ -63,6 +64,7 @@ fun SettingsNavigator(
         composable("advancedparams") { AdvancedParametersScreen(navController) }
         addTypingNavigation(navController)
         composable("voiceInput") { VoiceInputScreen(navController) }
+        composable("remoteWhisper") { RemoteWhisperScreen(navController) }
         composable("themes") { ThemeScreen(navController) }
         composable("help") { HelpScreen(navController) }
         composable("developer") { DeveloperScreen(navController) }

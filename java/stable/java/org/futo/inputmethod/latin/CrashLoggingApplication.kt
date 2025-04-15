@@ -3,8 +3,10 @@ package org.futo.inputmethod.latin
 import android.app.Application
 import android.content.Context
 import android.os.UserManager
+import android.util.Log
 import androidx.datastore.preferences.core.Preferences
 import androidx.work.Configuration
+import org.futo.voiceinput.shared.util.NetworkUtils
 import org.acra.ACRA
 import org.acra.config.dialog
 //import org.acra.config.httpSender
@@ -14,8 +16,33 @@ import org.acra.data.StringFormat
 import org.acra.ktx.initAcra
 
 class CrashLoggingApplication : Application(), Configuration.Provider {
+    companion object {
+        private const val TAG = "CrashLoggingApplication"
+        var acraInitialized = false
+
+        fun logPreferences(preferences: Preferences) {
+            if(acraInitialized) {
+                preferences.asMap().forEach {
+                    ACRA.errorReporter.putCustomData(it.key.name, it.value.toString())
+                }
+            }
+        }
+    }
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().build()
+    
+    override fun onCreate() {
+        super.onCreate()
+        
+        // Initialize NetworkUtils for network monitoring
+        try {
+            NetworkUtils.initialize(applicationContext)
+            Log.d(TAG, "NetworkUtils initialized successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing NetworkUtils", e)
+        }
+    }
 
 
     override fun attachBaseContext(base: Context?) {
@@ -67,15 +94,4 @@ class CrashLoggingApplication : Application(), Configuration.Provider {
         }
     }
 
-    companion object {
-        var acraInitialized = false
-
-        fun logPreferences(preferences: Preferences) {
-            if(acraInitialized) {
-                preferences.asMap().forEach {
-                    ACRA.errorReporter.putCustomData(it.key.name, it.value.toString())
-                }
-            }
-        }
-    }
 }

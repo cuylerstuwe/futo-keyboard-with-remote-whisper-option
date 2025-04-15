@@ -88,4 +88,10 @@ dependencies {
     implementation(name:'tensorflow-lite-support-api', ext:'aar')
 
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1'
+    
+    // OkHttp for network communication with remote Whisper API
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    
+    // Preference library for configuration settings
+    implementation 'androidx.preference:preference-ktx:1.2.1'
 }

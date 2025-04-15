@@ -3,6 +3,8 @@ package org.futo.voiceinput.shared.types
 import android.content.Context
 import androidx.annotation.StringRes
 import org.futo.voiceinput.shared.ggml.WhisperGGML
+import org.futo.voiceinput.shared.whisper.RemoteWhisperProcessor
+import org.futo.voiceinput.shared.whisper.WhisperProcessor
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -39,7 +41,7 @@ interface ModelLoader {
     fun exists(context: Context): Boolean
     fun getRequiredDownloadList(context: Context): List<String>
 
-    fun loadGGML(context: Context): WhisperGGML
+    fun loadGGML(context: Context): WhisperProcessor
 
     fun key(context: Context): Any
 }
@@ -56,7 +58,7 @@ internal class ModelBuiltInAsset(
         return listOf()
     }
 
-    override fun loadGGML(context: Context): WhisperGGML {
+    override fun loadGGML(context: Context): WhisperProcessor {
         val file = loadMappedFile(context, ggmlFile)
         return WhisperGGML(file)
     }
@@ -97,7 +99,7 @@ internal class ModelDownloadable(
         }
     }
 
-    override fun loadGGML(context: Context): WhisperGGML {
+    override fun loadGGML(context: Context): WhisperProcessor {
         val file = context.tryOpenDownloadedModel(ggmlFile)
         return WhisperGGML(file)
     }
@@ -119,12 +121,34 @@ public class ModelFileFile(
         return listOf()
     }
 
-    override fun loadGGML(context: Context): WhisperGGML {
+    override fun loadGGML(context: Context): WhisperProcessor {
         val file = tryOpenDownloadedModel(file)
         return WhisperGGML(file)
     }
 
     override fun key(context: Context): Any {
         return "File${file.absolutePath}"
+    }
+}
+
+/**
+ * Model loader for remote Whisper API processing.
+ */
+class RemoteModelLoader(
+    @StringRes override val name: Int,
+    private val serverUrl: String,
+    private val apiKey: String? = null,
+    private val modelName: String = "whisper-large-v3"
+) : ModelLoader {
+    override fun exists(context: Context): Boolean = true
+    
+    override fun getRequiredDownloadList(context: Context): List<String> = emptyList()
+    
+    override fun loadGGML(context: Context): WhisperProcessor {
+        return RemoteWhisperProcessor(serverUrl, apiKey, modelName)
+    }
+    
+    override fun key(context: Context): Any {
+        return "Remote$serverUrl$modelName"
     }
 }
